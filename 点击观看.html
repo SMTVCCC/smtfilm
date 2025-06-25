@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <meta name="HandheldFriendly" content="true">
+    <title>SMTFILM</title>
+    <style>
+        /* 基础样式 */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #141414;
+            color: #fff;
+        }
+
+        header h1 {
+            color: #e50914;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        header {
+            background-color: #141414;
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        nav ul li {
+            display: inline;
+            margin: 0 20px;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #e50914;
+        }
+
+        #search-bar {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            background-color: #222;
+            color: #fff;
+            width: 350px;
+            transition: all 0.3s ease;
+        }
+
+        #search-bar:focus {
+            outline: none;
+            border-color: #e50914;
+            box-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
+        }
+
+        #movies {
+            padding: 2rem 50px;
+        }
+
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .movie-item {
+            background-color: #222;
+            border-radius: 5px;
+            overflow: hidden;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .movie-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .movie-item .title-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            color: #fff;
+            padding: 20px 10px 10px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .movie-item:hover .title-overlay {
+            transform: translateY(0);
+        }
+
+        .movie-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            aspect-ratio: 3 / 4;
+        }
+
+        .movie-item h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .movie-item.coming-soon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #222;
+            color: #666;
+            font-size: 1.2rem;
+            aspect-ratio: 3 / 4;
+        }
+
+        .movie-item.coming-soon h3 {
+            color: #666;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px 0;
+            border-top: 1px solid #333;
+            margin-top: 2rem;
+        }
+
+        /* 详情页样式 */
+        .header-left {
+            flex: 0 0 auto;
+            margin-right: 20px;
+        }
+
+        .back-button {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1rem;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #e50914, #b8070f);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+        }
+
+        .back-button:hover {
+            background: linear-gradient(135deg, #ff1a2e, #e50914);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
+        }
+
+        .back-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(229, 9, 20, 0.3);
+        }
+
+        #detail-container {
+            padding: 2rem 50px;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .video-section {
+            flex: 1;
+            min-width: 0;
+            position: relative;
+        }
+
+        .video-player {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background-color: #000;
+            min-height: 300px;
+            transition: all 0.3s ease;
+        }
+
+        .video-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .video-controls.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .control-button {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+
+        .control-button:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .fullpage-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fullpage-mode .video-player {
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            object-fit: contain;
+        }
+
+        .fullpage-mode .video-controls {
+            top: 20px;
+            right: 20px;
+        }
+
+        body.fullpage-active {
+            overflow: hidden;
+        }
+
+        body.fullpage-active header,
+        body.fullpage-active footer,
+        body.fullpage-active .info-section,
+        body.fullpage-active .episode-section {
+            display: none;
+        }
+
+        .info-section {
+            flex: 0 0 400px;
+            padding-left: 20px;
+        }
+
+        .movie-title {
+            font-size: 2.5rem;
+            margin: 0 0 20px 0;
+            color: #fff;
+        }
+
+        .movie-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .episode-section {
+            width: 100%;
+        }
+
+        .episode-list h3 {
+            font-size: 1.5rem;
+            border-bottom: 2px solid #e50914;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .episodes {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .episode-item {
+            background-color: #222;
+            color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .episode-item:hover {
+            background-color: #e50914;
+            transform: translateY(-2px);
+        }
+
+        .episode-item.active {
+            background-color: #e50914;
+            border-color: #fff;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, #1a1a1a, #333);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ccc;
+            font-size: 1.2rem;
+            border: 2px dashed #555;
+        }
+
+        /* 缓冲动画样式 */
+        .buffering-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            border-radius: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .buffering-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .buffering-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #e50914;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        .buffering-text {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fullpage-mode .buffering-overlay {
+            border-radius: 0;
+        }
+
+        /* 页面切换相关样式 */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                padding: 15px 20px;
+                text-align: center;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+                margin-bottom: 10px;
+            }
+
+            nav ul {
+                text-align: center;
+                margin: 10px 0;
+            }
+
+            nav ul li {
+                margin: 0 8px;
+            }
+
+            #search-bar {
+                position: static;
+                transform: none;
+                width: 90%;
+                max-width: 400px;
+                margin: 10px auto 0;
+                padding: 8px 15px;
+            }
+
+            #movies {
+                padding: 1.5rem 20px;
+            }
+
+            .movie-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 15px;
+            }
+
+            #detail-container {
+                padding: 2rem 20px;
+            }
+
+            .main-content {
+                flex-direction: column;
+                gap: 25px;
+            }
+
+            .info-section {
+                flex: none;
+                padding-left: 0;
+                text-align: center;
+            }
+
+            .movie-title {
+                font-size: 1.8rem;
+                margin-bottom: 15px;
+            }
+
+            .episodes {
+                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+                gap: 10px;
+            }
+
+            .episode-item {
+                padding: 12px 8px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .movie-grid {
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+                gap: 10px;
+            }
+
+            .episodes {
+                grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+                gap: 8px;
+            }
+
+            .episode-item {
+                padding: 10px 6px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 首页 -->
+    <div id="home-page" class="page active">
+        <header>
+            <h1>SMTFILM</h1>
+            <input type="text" id="search-bar" placeholder="搜索电影...">
+            <nav>
+                <ul>
+                    <li><a href="#">首页</a></li>
+                    <li><a href="#">电影</a></li>
+                    <li><a href="#">电视剧</a></li>
+                    <li><a href="#">动漫</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section id="movies">
+                <h2>热门推荐</h2>
+                <div class="movie-grid">
+                    <!-- 电影列表将在这里动态生成 -->
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>免责声明：本站所有内容均来自互联网，仅供学习交流使用，无任何商业用途。如有侵权，请联系删除。</p>
+            <p style="opacity: 0.5; margin-top: 10px; font-size: 0.9rem;">© 2025 SMT_Vincent | SMTFILM</p>
+        </footer>
+    </div>
+
+    <!-- 详情页 -->
+    <div id="detail-page" class="page">
+        <header style="display: flex; align-items: center;">
+            <div class="header-left">
+                <button class="back-button" onclick="showHomePage()">← 返回首页</button>
+            </div>
+            <h1 style="flex: 1; text-align: center;"><span style="color: #e50914; cursor: pointer;" onclick="showHomePage()">SMTFILM</span></h1>
+        </header>
+
+        <main id="detail-container">
+            <!-- 详细信息将由JS动态加载 -->
+        </main>
+
+        <footer>
+            <p>免责声明：本站所有内容均来自互联网，仅供学习交流使用，无任何商业用途。如有侵权，请联系删除。</p>
+            <p style="opacity: 0.5; margin-top: 10px; font-size: 0.9rem;">© 2025 SMT_Vincent | SMTFILM</p>
+        </footer>
+    </div>
+
+    <script>
+        // 全局变量
+        let videoPlayer = null;
+        let currentEpisode = null;
+        const apiBaseUrl = 'http://113.44.130.103:3000';
+
+        // 页面切换函数
+        function showHomePage() {
+            document.getElementById('home-page').classList.add('active');
+            document.getElementById('detail-page').classList.remove('active');
+            
+            // 停止视频播放
+            if (videoPlayer) {
+                videoPlayer.pause();
+                videoPlayer = null;
+            }
+            
+            // 隐藏缓冲动画
+            const bufferingOverlay = document.getElementById('buffering-overlay');
+            if (bufferingOverlay) {
+                bufferingOverlay.classList.remove('show');
+            }
+            
+            // 退出全屏模式
+            const videoSection = document.querySelector('.video-section');
+            const body = document.body;
+            if (videoSection && videoSection.classList.contains('fullpage-mode')) {
+                videoSection.classList.remove('fullpage-mode');
+                body.classList.remove('fullpage-active');
+            }
+        }
+
+        function showDetailPage(movieId) {
+            document.getElementById('home-page').classList.remove('active');
+            document.getElementById('detail-page').classList.add('active');
+            
+            // 加载电影详情
+            loadMovieDetail(movieId);
+        }
+
+        // 首页相关函数
+        function loadMovies() {
+            const movieGrid = document.querySelector('.movie-grid');
+
+            fetch(`${apiBaseUrl}/api/movies`)
+                .then(response => response.json())
+                .then(movies => {
+                    renderMovies(movies);
+                })
+                .catch(error => console.error('Error fetching movies:', error));
+
+            function renderMovies(movies) {
+                movieGrid.innerHTML = '';
+                movies.forEach(movie => {
+                    const movieItem = document.createElement('div');
+                    movieItem.classList.add('movie-item');
+
+                    if (movie.poster) {
+                        const poster = document.createElement('img');
+                        poster.src = `${apiBaseUrl}${movie.poster}`;
+                        poster.alt = movie.title;
+                        movieItem.appendChild(poster);
+
+                        const titleOverlay = document.createElement('div');
+                        titleOverlay.classList.add('title-overlay');
+                        const title = document.createElement('h3');
+                        title.textContent = movie.title;
+                        titleOverlay.appendChild(title);
+                        movieItem.appendChild(titleOverlay);
+                    } else {
+                        movieItem.classList.add('coming-soon');
+                        const title = document.createElement('h3');
+                        title.textContent = movie.title;
+                        movieItem.appendChild(title);
+                    }
+
+                    movieItem.addEventListener('click', () => {
+                        showDetailPage(movie.id);
+                    });
+
+                    movieGrid.appendChild(movieItem);
+                });
+            }
+        }
+
+        // 详情页相关函数
+        function loadMovieDetail(movieId) {
+            const detailContainer = document.getElementById('detail-container');
+
+            fetch(`${apiBaseUrl}/api/movies/${movieId}`)
+                .then(response => response.json())
+                .then(movie => {
+                    renderMovieDetail(movie);
+                })
+                .catch(error => console.error('Error fetching movie details:', error));
+        }
+
+        function renderMovieDetail(movie) {
+            const detailContainer = document.getElementById('detail-container');
+            detailContainer.innerHTML = `
+                <div class="main-content">
+                    <div class="video-section">
+                        <div class="video-placeholder" id="video-placeholder">
+                            点击下方选集开始播放
+                        </div>
+                    </div>
+                    <div class="info-section">
+                        <h1 class="movie-title">${movie.title}</h1>
+                        <p class="movie-description">${movie.description}</p>
+                    </div>
+                </div>
+                <div class="episode-section">
+                    <div class="episode-list">
+                        <h3>剧集列表</h3>
+                        <div class="episodes">
+                            ${movie.episodes.map((ep, index) => `<div class="episode-item" data-video-src="${ep.video}" data-episode-index="${index}">${ep.title}</div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const episodeItems = document.querySelectorAll('.episode-item');
+            episodeItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const videoSrc = item.getAttribute('data-video-src');
+                    const episodeIndex = item.getAttribute('data-episode-index');
+                    
+                    document.querySelectorAll('.episode-item').forEach(ep => ep.classList.remove('active'));
+                    item.classList.add('active');
+                    
+                    playVideo(`${apiBaseUrl}${videoSrc}`, episodeIndex);
+                });
+            });
+        }
+
+        function playVideo(src, episodeIndex) {
+            const videoSection = document.querySelector('.video-section');
+            const placeholder = document.getElementById('video-placeholder');
+            
+            if (placeholder) {
+                placeholder.remove();
+            }
+            
+            if (!videoPlayer) {
+                videoPlayer = document.createElement('video');
+                videoPlayer.className = 'video-player';
+                videoPlayer.controls = true;
+                videoPlayer.autoplay = true;
+                videoSection.appendChild(videoPlayer);
+                
+                createVideoControls(videoSection);
+                createBufferingOverlay(videoSection);
+                addVideoEventListeners();
+            }
+            
+            videoPlayer.src = src;
+            currentEpisode = episodeIndex;
+            videoPlayer.play();
+        }
+        
+        function createVideoControls(videoSection) {
+            const controlsContainer = document.createElement('div');
+            controlsContainer.className = 'video-controls';
+            
+            const fullpageButton = document.createElement('button');
+            fullpageButton.className = 'control-button';
+            fullpageButton.textContent = '填满页面';
+            fullpageButton.onclick = toggleFullpageMode;
+            
+            controlsContainer.appendChild(fullpageButton);
+            videoSection.appendChild(controlsContainer);
+            
+            setupControlsAutoHide(videoSection, controlsContainer);
+        }
+        
+        function createBufferingOverlay(videoSection) {
+            const bufferingOverlay = document.createElement('div');
+            bufferingOverlay.className = 'buffering-overlay';
+            bufferingOverlay.id = 'buffering-overlay';
+            
+            const spinner = document.createElement('div');
+            spinner.className = 'buffering-spinner';
+            
+            const text = document.createElement('div');
+            text.className = 'buffering-text';
+            text.textContent = '正在缓冲...';
+            
+            bufferingOverlay.appendChild(spinner);
+            bufferingOverlay.appendChild(text);
+            videoSection.appendChild(bufferingOverlay);
+        }
+        
+        function setupControlsAutoHide(videoSection, controlsContainer) {
+            let hideTimeout;
+            
+            function showControls() {
+                controlsContainer.classList.add('show');
+                clearTimeout(hideTimeout);
+            }
+            
+            function hideControls() {
+                if (videoPlayer && videoPlayer.paused) {
+                    return;
+                }
+                hideTimeout = setTimeout(() => {
+                    controlsContainer.classList.remove('show');
+                }, 500);
+            }
+            
+            videoSection.addEventListener('mousemove', showControls);
+            
+            videoSection.addEventListener('mouseleave', () => {
+                if (videoPlayer && videoPlayer.paused) {
+                    return;
+                }
+                controlsContainer.classList.remove('show');
+                clearTimeout(hideTimeout);
+            });
+            
+            videoSection.addEventListener('mouseenter', showControls);
+            
+            let mouseMoveTimeout;
+            videoSection.addEventListener('mousemove', () => {
+                clearTimeout(mouseMoveTimeout);
+                mouseMoveTimeout = setTimeout(hideControls, 100);
+            });
+        }
+        
+        function toggleFullpageMode() {
+            const videoSection = document.querySelector('.video-section');
+            const body = document.body;
+            const fullpageButton = document.querySelector('.control-button');
+            
+            if (videoSection.classList.contains('fullpage-mode')) {
+                videoSection.classList.remove('fullpage-mode');
+                body.classList.remove('fullpage-active');
+                fullpageButton.textContent = '填满页面';
+            } else {
+                videoSection.classList.add('fullpage-mode');
+                body.classList.add('fullpage-active');
+                fullpageButton.textContent = '退出填满';
+            }
+        }
+        
+        function addVideoEventListeners() {
+            if (videoPlayer) {
+                const bufferingOverlay = document.getElementById('buffering-overlay');
+                
+                videoPlayer.addEventListener('play', () => {
+                    const videoSection = document.querySelector('.video-section');
+                    const controlsContainer = document.querySelector('.video-controls');
+                    if (!videoSection.matches(':hover')) {
+                        setTimeout(() => {
+                            if (videoPlayer && !videoPlayer.paused) {
+                                controlsContainer.classList.remove('show');
+                            }
+                        }, 500);
+                    }
+                });
+                
+                videoPlayer.addEventListener('pause', () => {
+                    const controlsContainer = document.querySelector('.video-controls');
+                    controlsContainer.classList.add('show');
+                });
+                
+                // 缓冲相关事件
+                videoPlayer.addEventListener('waiting', () => {
+                    if (bufferingOverlay) {
+                        bufferingOverlay.classList.add('show');
+                    }
+                });
+                
+                videoPlayer.addEventListener('canplay', () => {
+                    if (bufferingOverlay) {
+                        bufferingOverlay.classList.remove('show');
+                    }
+                });
+                
+                videoPlayer.addEventListener('canplaythrough', () => {
+                    if (bufferingOverlay) {
+                        bufferingOverlay.classList.remove('show');
+                    }
+                });
+                
+                videoPlayer.addEventListener('loadstart', () => {
+                    if (bufferingOverlay) {
+                        bufferingOverlay.classList.add('show');
+                    }
+                });
+                
+                videoPlayer.addEventListener('loadeddata', () => {
+                    if (bufferingOverlay) {
+                        bufferingOverlay.classList.remove('show');
+                    }
+                });
+            }
+        }
+        
+        // 键盘快捷键支持
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.querySelector('.video-section.fullpage-mode')) {
+                toggleFullpageMode();
+            }
+        });
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMovies();
+        });
+    </script>
+</body>
+</html>
