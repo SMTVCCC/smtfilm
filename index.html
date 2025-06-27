@@ -273,36 +273,44 @@
 
     <script>
         function downloadFile() {
-            try {
-                // 创建下载链接
-                const link = document.createElement('a');
-                link.href = './点击观看.html';
-                link.download = '点击观看.html';
-                
-                // 触发下载
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // 显示成功消息
-                document.getElementById('successMessage').style.display = 'block';
-                document.getElementById('errorMessage').style.display = 'none';
-                
-                // 5秒后隐藏消息
-                setTimeout(() => {
-                    document.getElementById('successMessage').style.display = 'none';
-                }, 5000);
-                
-            } catch (error) {
-                console.error('下载失败:', error);
-                document.getElementById('errorMessage').style.display = 'block';
-                document.getElementById('successMessage').style.display = 'none';
-                
-                // 5秒后隐藏错误消息
-                setTimeout(() => {
-                    document.getElementById('errorMessage').style.display = 'none';
-                }, 5000);
-            }
+            const filePath = './点击观看.html';
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // 隐藏之前的消息
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+
+            // 使用 fetch 和 blob 强制下载
+            fetch(filePath)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filePath.split('/').pop();
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    successMessage.style.display = 'block';
+                    setTimeout(() => {
+                        successMessage.style.display = 'none';
+                    }, 5000);
+                })
+                .catch(err => {
+                    console.error('Download error:', err);
+                    errorMessage.style.display = 'block';
+                    setTimeout(() => {
+                        errorMessage.style.display = 'none';
+                    }, 5000);
+                });
         }
         
         // 添加一些动态效果
