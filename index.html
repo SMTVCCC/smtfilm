@@ -112,6 +112,18 @@
                 font-size: 1rem; /* Smaller text for mobile */
             }
         }
+    </style>     @media (max-width: 768px) {
+            body {
+                min-height: 100vh; /* Ensure full viewport height on mobile */
+            }
+            .logo {
+                font-size: 4rem; /* Smaller font size for mobile */
+                letter-spacing: -2px; /* Adjust letter spacing for mobile */
+            }
+            .loading-text {
+                font-size: 1rem; /* Smaller text for mobile */
+            }
+        }
     </style>
 </head>
 <body>
@@ -126,33 +138,42 @@
     <div class="particle"></div>
     <div class="particle"></div>
 
-    <audio id="welcomeAudio" src="./welcome.wav" preload="auto"></audio>
+    <audio id="welcomeAudio" preload="auto">
+        <!-- 为获得最佳兼容性，请提供多种格式 -->
+        <source src="./welcome.mp3" type="audio/mpeg">
+        <source src="./welcome.ogg" type="audio/ogg">
+        <source src="./welcome.wav" type="audio/wav">
+        您的浏览器不支持音频播放。
+    </audio>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const welcomeAudio = document.getElementById('welcomeAudio');
-            welcomeAudio.volume = 0.2; // Set volume to 20%
-            welcomeAudio.play();
+            welcomeAudio.volume = 0.2; // 设置音量为 20%
 
-            // Set a timeout to pause the audio after 1.5 seconds
-            setTimeout(() => {
-                welcomeAudio.pause();
-                // Optionally, reset audio to the beginning if you want to replay it later
-                // welcomeAudio.currentTime = 0;
-            }, 1500); // 1900 milliseconds = 1.5 seconds
+            // 尝试播放音频，并处理潜在的自动播放限制
+            const playPromise = welcomeAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    // 自动播放成功！
+                    // 设置一个超时，在 1.5 秒后暂停音频
+                    setTimeout(() => {
+                        welcomeAudio.pause();
+                    }, 1500);
+                }).catch(error => {
+                    // 自动播放被浏览器阻止
+                    console.warn("音频自动播放失败：", error);
+                    // 即使没有音频，页面也会继续正常跳转
+                });
+            }
 
-            // Set a separate timeout for page redirection after 1.5 seconds
+            // 设置一个超时，在 1.5 秒后重定向页面
             const redirectUrl = 'http://113.44.130.103:25565';
-            const delay = 1500; // 1.5 seconds delay before redirecting
+            const delay = 1500; // 1.5 秒延迟
 
             setTimeout(() => {
                 window.location.href = redirectUrl;
             }, delay);
-
-            // The onended event will likely not be triggered if audio is paused by setTimeout
-            welcomeAudio.onended = function() {
-                // This block is now mostly for fallback or if audio is shorter than 1.9s
-            };
         });
     </script>
 </body>
