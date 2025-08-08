@@ -243,6 +243,7 @@
 <body>
     <div class="container">
         <div class="logo">SMTFILM</div>
+        <div class="loading-text">抱歉，本站因不可抗因素已暂停服务！</div>
     </div>
 
     <!-- Optional: Background particles -->
@@ -252,9 +253,9 @@
     <div class="particle"></div>
     <div class="particle"></div>
 
-    <audio id="welcomeAudio" preload="auto">
+    <audio id="welcomeAudio" preload="auto" crossorigin="anonymous">
         <source src="./welcome.mp3" type="audio/mpeg">
-        <source src="./welcome.ogg" type="audio/ogg">
+        <source src="./welcome.ogg" type="audio/ogg; codecs=vorbis">
         <source src="./welcome.wav" type="audio/wav">
         您的浏览器不支持音频播放。
     </audio>
@@ -273,36 +274,141 @@
                 setTimeout(setViewportHeight, 100);
             });
             
-            // 音频处理
+            // 音频处理 - 增强兼容性
             const welcomeAudio = document.getElementById('welcomeAudio');
-            welcomeAudio.volume = 0.2;
+            let audioPlayed = false;
+            let audioContext = null;
             
-            // 移动端音频播放优化
-            function playAudio() {
+            // 初始化音频设置
+            function initAudio() {
+                try {
+                    // 检查音频支持
+                    if (!welcomeAudio.canPlayType) {
+                        console.log('Browser does not support audio');
+                        return;
+                    }
+                    
+                    // 检查音频格式支持
+                    const mp3Support = welcomeAudio.canPlayType('audio/mpeg');
+                    const oggSupport = welcomeAudio.canPlayType('audio/ogg; codecs="vorbis"');
+                    const wavSupport = welcomeAudio.canPlayType('audio/wav');
+                    
+                    console.log('Audio format support:', { mp3: mp3Support, ogg: oggSupport, wav: wavSupport });
+                    
+                    welcomeAudio.volume = 0.2;
+                    welcomeAudio.muted = false;
+                    welcomeAudio.preload = 'auto';
+                    welcomeAudio.loop = false;
+                    
+                    // 添加音频事件监听器
+                    welcomeAudio.addEventListener('loadstart', () => console.log('Audio load started'));
+                    welcomeAudio.addEventListener('canplay', () => console.log('Audio can play'));
+                    welcomeAudio.addEventListener('canplaythrough', () => console.log('Audio can play through'));
+                    welcomeAudio.addEventListener('error', (e) => {
+                        console.log('Audio error:', e.target.error);
+                        if (e.target.error) {
+                            console.log('Error code:', e.target.error.code);
+                            console.log('Error message:', e.target.error.message);
+                        }
+                    });
+                    welcomeAudio.addEventListener('stalled', () => console.log('Audio stalled'));
+                    welcomeAudio.addEventListener('suspend', () => console.log('Audio suspended'));
+                    
+                    // 创建 AudioContext（如果支持）
+                    if (window.AudioContext || window.webkitAudioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        console.log('AudioContext created, state:', audioContext.state);
+                    }
+                } catch (error) {
+                    console.log('Audio initialization error:', error);
+                }
+            }
+            
+            // 尝试播放音频的多种方法
+            function attemptAudioPlay() {
+                if (audioPlayed) return;
+                
+                // 方法1: 直接播放
                 const playPromise = welcomeAudio.play();
                 
                 if (playPromise !== undefined) {
                     playPromise.then(() => {
-                        // 音频播放成功
+                        audioPlayed = true;
                         console.log('Audio started playing');
                     }).catch(error => {
-                        // 自动播放被阻止，通常在移动端发生
-                        console.log('Audio autoplay prevented:', error);
-                        
-                        // 添加用户交互监听器以启动音频
-                        const startAudio = () => {
-                            welcomeAudio.play();
-                            document.removeEventListener('touchstart', startAudio);
-                            document.removeEventListener('click', startAudio);
-                        };
-                        
-                        document.addEventListener('touchstart', startAudio, { once: true });
-                        document.addEventListener('click', startAudio, { once: true });
+                        console.log('Direct audio play failed:', error);
+                        setupUserInteractionAudio();
                     });
+                } else {
+                    // 旧浏览器兼容
+                    try {
+                        welcomeAudio.play();
+                        audioPlayed = true;
+                        console.log('Audio started playing (legacy)');
+                    } catch (error) {
+                        console.log('Legacy audio play failed:', error);
+                        setupUserInteractionAudio();
+                    }
                 }
             }
             
-            playAudio();
+            // 设置用户交互触发音频
+            function setupUserInteractionAudio() {
+                const events = ['click', 'touchstart', 'touchend', 'mousedown', 'keydown'];
+                
+                const startAudio = (event) => {
+                    if (audioPlayed) return;
+                    
+                    try {
+                        // 恢复 AudioContext（如果被暂停）
+                        if (audioContext && audioContext.state === 'suspended') {
+                            audioContext.resume();
+                        }
+                        
+                        welcomeAudio.currentTime = 0;
+                        const playPromise = welcomeAudio.play();
+                        
+                        if (playPromise !== undefined) {
+                            playPromise.then(() => {
+                                audioPlayed = true;
+                                console.log('Audio started after user interaction');
+                                removeAudioListeners();
+                            }).catch(error => {
+                                console.log('User interaction audio play failed:', error);
+                            });
+                        } else {
+                            welcomeAudio.play();
+                            audioPlayed = true;
+                            console.log('Audio started after user interaction (legacy)');
+                            removeAudioListeners();
+                        }
+                    } catch (error) {
+                        console.log('User interaction audio error:', error);
+                    }
+                };
+                
+                const removeAudioListeners = () => {
+                    events.forEach(eventType => {
+                        document.removeEventListener(eventType, startAudio);
+                    });
+                };
+                
+                // 添加多种事件监听器
+                events.forEach(eventType => {
+                    document.addEventListener(eventType, startAudio, { once: true, passive: true });
+                });
+                
+                // 5秒后移除监听器（避免内存泄漏）
+                setTimeout(removeAudioListeners, 5000);
+            }
+            
+            // 初始化并尝试播放音频
+            initAudio();
+            
+            // 延迟尝试播放（给浏览器更多时间加载）
+            setTimeout(() => {
+                attemptAudioPlay();
+            }, 100);
             
             // 音频暂停定时器
             setTimeout(() => {
@@ -311,19 +417,8 @@
                 }
             }, 1500);
             
-            // 页面重定向
-            const redirectUrl = 'http://113.44.130.103:25565';
-            const delay = 1500;
-            
-            setTimeout(() => {
-                // 移动端重定向优化
-                if ('serviceWorker' in navigator) {
-                    // 如果支持 Service Worker，使用更平滑的导航
-                    window.location.href = redirectUrl;
-                } else {
-                    window.location.href = redirectUrl;
-                }
-            }, delay);
+            // 移除页面重定向功能
+            // 现在显示暂停服务信息，不再跳转
             
             // 防止移动端意外缩放
             document.addEventListener('gesturestart', function(e) {
